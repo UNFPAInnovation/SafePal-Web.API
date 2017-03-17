@@ -1,0 +1,6 @@
+composer.phar
+/vendor/
+/logs/
+.env.php
+.env*
+composer.lock
