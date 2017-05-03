@@ -1,6 +1,7 @@
-composer.phar
+#exclude
+/.env.php
 /vendor/
 /logs/
-.env.php
-.env*
-composer.lock
+/composer.phar
+/tests
+/src/routes
