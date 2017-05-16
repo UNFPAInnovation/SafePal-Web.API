@@ -103,6 +103,7 @@ final class SafePalDB
 			'action' => $note['action'],
 			'action_date' => $note['action_date'],
 			'user' => $note['user'],
+			'caseNumber' => $note['caseNumber'],
 			);
 
 		$stmt = $this->pdo->prepare(getenv('NEW_CASE_ACTIVITY_QUERY'));
@@ -112,11 +113,24 @@ final class SafePalDB
 		return $res;
 	}
 
+	public function GetNotes(){
+		$q = $this->pdo->prepare(getenv('GET_ALL_NOTES_QUERY'));
+		$q->execute();
+		return $q->fetchAll();
+	}
+
 	//get all reports
 	public function GetReports(){
 		$q = $this->pdo->prepare(getenv('GET_ALL_REPORTS_QUERY'));
 		$q->execute();
 		return $q->fetchAll();
+	}
+
+	public function AddContactToReport($caseNumber, $contact){
+		$q = getenv('UPDATE_CONTACT_QUERY_1').$contact.getenv('UPDATE_CONTACT_QUERY_2').$caseNumber;
+		$q = $this->pdo->prepare($q);
+		$status = $q->execute();
+		return $status;
 	}
 
 	//get all CSOs
@@ -151,8 +165,6 @@ final class SafePalDB
 		if (sizeof($result) > 0) {
 			return true;
 		}
-
-		
 		return false;
 	}
 }

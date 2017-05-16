@@ -27,10 +27,21 @@ final class SafePalReport
 		return $status;
 	}
 
+	public function GetAllNotes(){
+		$notes = $this->db->GetNotes();
+		return $notes;
+	}
+
 	//get all reports
 	public function GetAllReports(){
 		$reports = $this->db->GetReports();
 		return $reports;
+	}
+
+	//add contact to report
+	public function AddContact($caseNumber, $contact){
+		$response = $this->db->AddContactToReport($caseNumber, $contact);
+		return $response;
 	}
 
 }
