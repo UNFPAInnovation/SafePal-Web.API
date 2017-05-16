@@ -13,7 +13,7 @@ use Slim\Csrf as csrf;
 use SafePal as pal;
 
 //ENV
-$dotenv = new Dotenv\Dotenv(__DIR__, '.env');
+$dotenv = new Dotenv\Dotenv(__DIR__, 'example.env');
 $dotenv->load(); 
 
 $config = ['settings'=> ['displayErrorDetails' => getenv('DISPLAYERRORDETAILS'), 'debug' => getenv('DISPLAYERRORDETAILS'),]];
@@ -48,8 +48,11 @@ $dicontainer['reports'] = function ($rp){
 //$app->add(new csrf\Guard);
 
 $app->add(function($req, $res, $next){
+    $response = $next($req, $res);
     if (!$req->isXhr()) {
-        return $next($req, $res);
+        return $response->withHeader('Access-Control-Allow-Origin', '*')
+        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, userid')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     }
 });
 
@@ -96,8 +99,7 @@ $app->group('/api/v1', function () use ($app) {
             $hash = $req->getParsedBody()['hash'];
 
             $status = $this->auth->CheckAuth($username, $hash);
-
-            return $res->withJson(array("login" => $status));
+            return ($status) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Log in successful!")) : $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Login failed!"));
         });
 
     });
@@ -125,6 +127,17 @@ $app->group('/api/v1', function () use ($app) {
             return (sizeof($allreports) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "reports" => $allreports)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "reports" => NULL));
 
         });
+
+        //update report
+        $app->post('/addcontact', function (Request $req, Response $res) use ($app){
+
+            $report = $req->getParsedBody();
+
+            $update = $this->reports->AddContact($report['caseNumber'], $report['contact']);
+
+            return ($update) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Contact added successfully!")): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to update contact!"));
+
+        });
 });
 
         /*** CASE ACTIVITY ***/
@@ -142,6 +155,15 @@ $app->group('/api/v1', function () use ($app) {
             $result = $this->reports->AddNote($note);
 
             return ($result) ? $res->withJson(array(getenv('STATUS') => getenv('SUCCESS_STATUS'), getenv('MSG') => getenv('NOTE_SUCCESS_MSG'))): $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => getenv('NOTE_FAILURE_MSG'))); 
+
+        });
+
+        //get all case notes
+        $app->post('/all', function (Request $req, Response $res) use ($app){
+
+             $allnotes = $this->reports->GetAllNotes();
+
+             return (sizeof($allnotes) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "notes" => $allnotes)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "notes" => NULL));
 
         });
 
