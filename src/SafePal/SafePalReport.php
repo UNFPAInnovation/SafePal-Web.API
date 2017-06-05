@@ -15,8 +15,8 @@ final class SafePalReport
 
 	//data from json/array
 	public function AddReport($reportarray){
-
-		$data = $this->db->SaveReport((array)$reportarray);
+		$typeID = $this->getTypeID($reportarray['type']);
+		$data = $this->db->SaveReport((array)$reportarray, $typeID);
 		$this->db = null; //close connection
 		return $data;
 	}
@@ -33,8 +33,8 @@ final class SafePalReport
 	}
 
 	//get all reports
-	public function GetAllReports(){
-		$reports = $this->db->GetReports();
+	public function GetAllReports($csoID){
+		$reports = $this->db->GetReports($csoID);
 		return $reports;
 	}
 
@@ -42,6 +42,30 @@ final class SafePalReport
 	public function AddContact($caseNumber, $contact){
 		$response = $this->db->AddContactToReport($caseNumber, $contact);
 		return $response;
+	}
+
+	//-- helper function to get ID
+	private function getTypeID($type){
+		$typeID = null;
+		switch ($type) {
+			case getenv('CASE_TYPE_TWO'):
+				$typeID = 2;
+				break;
+			case getenv('CASE_TYPE_THREE'):
+				$typeID = 3;
+				break;
+			case getenv('CASE_TYPE_FOUR'):
+				$typeID = 4;
+				break;
+			case getenv('CASE_TYPE_FIVE'):
+				$typeID = 5;
+				break;
+			default:
+				$typeID = 1;
+				break;
+		}
+
+		return $typeID;
 	}
 
 }

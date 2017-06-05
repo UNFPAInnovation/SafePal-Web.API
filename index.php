@@ -1,6 +1,4 @@
 <?php
-// Start PHP session
-session_start();
 
 require_once "vendor/autoload.php";
 
@@ -98,8 +96,8 @@ $app->group('/api/v1', function () use ($app) {
             $username = $req->getParsedBody()['username'];
             $hash = $req->getParsedBody()['hash'];
 
-            $status = $this->auth->CheckAuth($username, $hash);
-            return ($status) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Log in successful!")) : $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Login failed!"));
+            $user = $this->auth->CheckAuth($username, $hash);
+            return (sizeof($user) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "user" => $user)) : $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Login failed!"));
         });
 
     });
@@ -122,9 +120,14 @@ $app->group('/api/v1', function () use ($app) {
         //get all reports
         $app->post('/all', function (Request $req, Response $res) use ($app){
 
-            $allreports = $this->reports->GetAllReports();
+            $csoID = 0;
+            if (!empty($req->getParsedBody()['cso_id'])) {
+                $csoID = $req->getParsedBody()['cso_id'];
+            }
+            
+            $allreports = $this->reports->GetAllReports($csoID);
 
-            return (sizeof($allreports) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "reports" => $allreports)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "reports" => NULL));
+            return (sizeof($allreports) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "reports" => $allreports["all"], "user_reports" => $allreports["user"])): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "reports" => NULL));
 
         });
 

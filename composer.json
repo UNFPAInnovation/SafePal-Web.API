@@ -19,11 +19,19 @@
         "slim/pdo": "^1.10",
         "firebase/php-jwt": "^4.0",
         "phing/phing": "^2.16",
-        "predis/predis": "^1.1"
+        "predis/predis": "^1.1",
+        "phpmailer/phpmailer": "^5.2",
+        "league/oauth2-google": "^2.0",
+        "php-http/guzzle6-adapter": "^1.1",
+        "php-http/message": "^1.5",
+        "sendgrid/sendgrid": "~5.1",
+        "nesbot/carbon": "^1.22",
+        "africastalking/africastalking": "^1.2"
     }, 
     "autoload": {
         "psr-4" : {
-            "SafePal\\" : "src/SafePal"
+            "SafePal\\" : "src/SafePal",
+            "AfricasTalkingGateway\\": "vendor/africastalking/africastalking/src"
         }
     }
 }
