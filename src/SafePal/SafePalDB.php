@@ -1,27 +1,34 @@
-<?php 
+<?php
 namespace SafePal;
 
-use Predis as redis;
 use Carbon\Carbon as carbon;
 
+//use Predis as redis;
+
+
 //register Redis
-redis\Autoloader::register();
+//redis\Autoloader::register(); // -- TO-DO: may do some caching for reports with redis
 
 /**
 * Handles all database work/interaction
 */
-final class SafePalDB 
+final class SafePalDB
 {
 	protected $pdo;
-	protected $redisclient;
+	//protected $redisclient;
 	protected $cleardb;
 	protected $dateUtil;
 
 	function __construct()
-	{	
-		//$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'));
-		$cleardb = parse_url(getenv("CLEARDB_DATABASE_URL"));
-		$this->pdo = new \PDO("mysql:host=".$cleardb['host'].";dbname=".substr($cleardb["path"], 1).";charset=utf8",$cleardb['user'], $cleardb['pass']);
+	{
+
+		if (getenv('APP_ENV') != 'dev') {
+			$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'));
+		} else {
+			$cleardb = parse_url(getenv("CLEARDB_DATABASE_URL"));
+			$this->pdo = new \PDO("mysql:host=".$cleardb['host'].";dbname=".substr($cleardb["path"], 1).";charset=utf8",$cleardb['user'], $cleardb['pass']);
+		}
+
 		$this->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 		$this->pdo->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
 		$this->pdo->setAttribute(\PDO::MYSQL_ATTR_INIT_COMMAND, "SET NAMES 'utf8'");
@@ -29,7 +36,7 @@ final class SafePalDB
 
 		//date util
 		$this->dateUtil = new carbon();
-	} 
+	}
 
 	//check if user exists
 	public function CheckUser($userid){
@@ -38,7 +45,7 @@ final class SafePalDB
 		$user->execute(array("userid" => $userid));
 		$result = $user->fetchColumn();
 
-		return ($result) ? true : false; 
+		return ($result) ? true : false;
 	}
 
 	//save new report
@@ -50,13 +57,8 @@ final class SafePalDB
 	//add report to db
 	private function AddReport($report, $typeID){
 		$result = null;
-		
 
-		//- location data
-		//$mapping = new SafePalMapping;
-		//$district = $mapping->GetLocationDistrict($report['latitude'], $report['longitude']);
-
-		$prefix = 'SPW'; // web by default
+		$prefix = getenv('DEFAULT_PREFIX');
 
 		if ($report['report_source'] !== 'web') {
 			$prefix = 'SPM';
@@ -99,7 +101,7 @@ final class SafePalDB
 				//-- hack to construct caseNumber from server side instead of rendering on client
 				$cNumber = strval($this->getCaseNumber($this->pdo->lastInsertId(), $prefix, $typeID));
 				$casenum = $this->pdo->lastInsertId();
-				$q = getenv('UPDATE_CASE_NUMBER_QUERY_1')." '".$cNumber."' ".getenv('UPDATE_CASE_NUMBER_QUERY_2')." ".$casenum; 
+				$q = getenv('UPDATE_CASE_NUMBER_QUERY_1')." '".$cNumber."' ".getenv('UPDATE_CASE_NUMBER_QUERY_2')." ".$casenum;
 				$q = $this->pdo->prepare($q);
 				$status = $q->execute();
 
@@ -111,7 +113,7 @@ final class SafePalDB
 					$nearbycsos = array();
 
 
-					for ($i=0; $i < sizeof($csos); $i++) { 
+					for ($i=0; $i < sizeof($csos); $i++) {
 
 						$isCSOInRadius = $mapDistance->checkIfGeoPointInRadius($report['latitude'], $report['longitude'],$csos[$i]['cso_latitude'], $csos[$i]['cso_longitude']); //5km radius
 
@@ -124,16 +126,17 @@ final class SafePalDB
 								$this->LogNotification($csos[$i]['cso_email'], $result['caseNumber'], 'email', $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString());
 							}
 							if (!empty($csos[$i]['cso_phone_number'])) {
-								//$mailNotification = $safePalNotifications->sendSMSNotification($csos[$i]['cso_phone_number']); //only send to csos with sms numbers
-								//$this->LogNotification($csos[$i]['cso_email'], $result['caseNumber'], 'sms', $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString());
+								$sms = $safePalNotifications->sendSMSNotification($csos[$i]['cso_phone_number']); //only send to csos with sms numbers
+								$this->LogNotification($csos[$i]['cso_email'], $result['caseNumber'], 'sms', $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString());
 							}
 
-							$this->LogReferral($result['caseNumber'], $csos[$i]['cso_details_id'], $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString()); 
+							$this->LogReferral($result['caseNumber'], $csos[$i]['cso_details_id'], $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString());
 						}
-						
+
 					}
 
-					$result['csos'] = $nearbycsos;
+					$result['csos'] = (sizeof($nearbycsos) < 1) ? $csos : $nearbycsos;
+
 				}
 			}
 		}
@@ -155,7 +158,7 @@ final class SafePalDB
 
 		$res = $stmt->execute(filter_var_array($params));
 
-		$actionStatus = 'Pending';
+		$actionStatus = 'In Progress';
 
 		if ($res) { //should only update status of case if note has been successfully logged
 
@@ -164,8 +167,8 @@ final class SafePalDB
 				$actionStatus = 'Closed';
 			}
 			$q = getenv('UPDATE_CASE_STATUS_QUERY_1')." '".$actionStatus."' ".getenv('UPDATE_CASE_STATUS_QUERY_2')." '".$note['caseNumber']."'";
-			
-			$q = $this->pdo->prepare($q); 
+
+			$q = $this->pdo->prepare($q);
 			$status = $q->execute();
 			return $status;
 		} else{
@@ -284,6 +287,20 @@ final class SafePalDB
 		$res = $stmt->execute(filter_var_array($params));
 
 		return $res;
+	}
+
+	public function LogAccess($user, $eventType ='login'){
+		$params = array(
+			'user' => $user,
+			'eventType' => $eventType,
+			'eventTime' =>  $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString()
+			);
+
+			$stmt = $this->pdo->prepare(getenv('LOG_ACCESS_QUERY'));
+
+			$res = $stmt->execute(filter_var_array($params));
+
+			return $res;
 	}
 }
 ?>

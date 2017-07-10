@@ -2,7 +2,6 @@
 
 require_once "vendor/autoload.php";
 
-//PSR
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 use Slim\Csrf as csrf;
@@ -10,33 +9,47 @@ use Slim\Csrf as csrf;
 //SafePal
 use SafePal as pal;
 
-//ENV
+
+//monolog
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+
+/**
+ * [$dotenv load env variables]
+ * @type {Dotenv}
+ */
 $dotenv = new Dotenv\Dotenv(__DIR__, 'example.env');
-$dotenv->load(); 
+$dotenv->load();
 
-$config = ['settings'=> ['displayErrorDetails' => getenv('DISPLAYERRORDETAILS'), 'debug' => getenv('DISPLAYERRORDETAILS'),]];
+/**
+ * [$slimConfig slim config]
+ * @type {Array}
+ */
+$slimConfig = require_once getenv('PATH_TO_CONFIG')."slim.php";
 
-//INIT SLIM
-$app = new \Slim\App($config);
+$app = new \Slim\App($slimConfig);
 
-//DI container
+/**
+ * [$dicontainer get dependency container]
+ * @type {object}
+ */
 $dicontainer = $app->getContainer();
 
-//Monolog
-$dicontainer['logger'] = function ($logger){
-    $log = new \Monolog\Logger(getenv('LOGGER'));
-    $file = new \Monolog\Handler\StreamHandler(getenv('STREAM_HANDLER'));
-    $log->pushHandler($file);
-    return $log;
-};
-
-//auth
+/**
+ * [SafePalAuth Dependency Injection]
+ * @param  {[SafePalAuth]} $d [SafePalAuth]
+ * @return {SafePalAuth}    [Handles all authentication-related work]
+ */
 $dicontainer['auth'] = function ($d){
     $auth = new pal\SafePalAuth;
     return $auth;
 };
 
-//reports
+/**
+ * [SafePalReport Dependency Injection]
+ * @param  {[SafePalReport]} $rp [SafePalReport]
+ * @return {[SafePalReport]}     [Handles all reports/cases-related work]
+ */
 $dicontainer['reports'] = function ($rp){
     return new pal\SafePalReport();
 };
@@ -45,6 +58,13 @@ $dicontainer['reports'] = function ($rp){
 //middleware to handle CSRF
 //$app->add(new csrf\Guard);
 
+/**
+ * [App-wide middleware to handle XHR]
+ * @param  {[Psr\Http\Message\ServerRequestInterface]} $req  [PSR Request Interface object]
+ * @param  {[Psr\Http\Message\ResponseInterface]} $res  [PSR Response Interface object]
+ * @param  {[type]} $next [Next ]
+ * @return {[type]}       [description]
+ */
 $app->add(function($req, $res, $next){
     $response = $next($req, $res);
     if (!$req->isXhr()) {
@@ -54,19 +74,37 @@ $app->add(function($req, $res, $next){
     }
 });
 
-///ROOT
+
+/**
+ * [Handle '/' GET request]
+ * @param  {[Request]} Request  [Request object]
+ * @param  {[Response]} Response [Response object]
+ * @return {[Response]}          [Returned response to requestor]
+ */
 $app->get('/', function (Request $req, Response $res){
     $res->getBody()->write("SafePal API v1.5");
     return $res;
 });
 
-/// API V1
+
+/**
+ * [Handle route - /api/v1]
+ * @return {[Response]} [Return appropriate responses for each request group]
+ */
 $app->group('/api/v1', function () use ($app) {
 
-    /*** AUTH ***/
+    /**
+     * [Handle - /api/v1/auth routes]
+     * @return {[Response]} [Server response]
+     */
     $app->group('/auth', function () use ($app){
-        
-        //get token
+
+      /**
+       * [Handle 'auth/newtoken' GET requests]
+       * @param  {[Request]} Request  [Request object]
+       * @param  {[Response]} Response [Response object]
+       * @return {[Response]}          [Returned response to requestor]
+       */
         $app->get('/newtoken', function (Request $req, Response $res) use ($app){
 
             $user = $req->getHeaderLine('userid');
@@ -82,30 +120,63 @@ $app->group('/api/v1', function () use ($app) {
                 $token = $auth->GetToken($user);
 
                 return $res->withJson(array(getenv('STATUS') => getenv('SUCCESS_STATUS'), "token" => $token));
-            } 
+            }
         });
 
 
-        //check token --handled in middleware
+        /**
+         * [Handle 'auth/checktoken' POST requests -- no body implementation. already handled through middleware]
+         * @param  {[Request]} Request  [Request object]
+         * @param  {[Response]} Response [Response object]
+         * @return {[Response]}          [Returned response to requestor]
+         */
         $app->post('/checktoken', function (Request $req, Response $res) use ($app){
         });
 
-        //login
+        /**
+         * [Handle 'auth/login' POST requests]
+         * @param  {[Request]} Request  [Request object]
+         * @param  {[Response]} Response [Response object]
+         * @return {[Response]}          [Returned response to requestor]
+         */
         $app->post('/login', function (Request $req, Response $res) use ($app){
 
             $username = $req->getParsedBody()['username'];
             $hash = $req->getParsedBody()['hash'];
-
-            $user = $this->auth->CheckAuth($username, $hash);
+            $user = $this->auth->CheckAuth($username, $hash, $eventTime);
+            if (sizeof($user) > 0) {
+              $isLogged = $this->auth->LogAccess($username, 'login');
+            }
             return (sizeof($user) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "user" => $user)) : $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Login failed!"));
+        });
+
+        /**
+         * [Handle 'auth/logout' POST requests]
+         * @param  {[Request]} Request  [Request object]
+         * @param  {[Response]} Response [Response object]
+         * @return {[Response]}          [Returned response to requestor]
+         */
+        $app->post('/logout', function (Request $req, Response $res) use ($app){
+
+            $username = $req->getParsedBody()['username'];
+            $isLogged = $this->auth->LogAccess($username, 'logout');
+            return ($isLogged) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'))) : $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Logging failed!"));
         });
 
     });
 
-    /*** REPORTS ***/
+    /**
+     * [Handle - /api/v1/reports routes]
+     * @return {[Response]} [Server response]
+     */
     $app->group('/reports', function() use ($app) {
 
-        //add new reports
+      /**
+       * [Handle 'reports/addreport' POST requests]
+       * @param  {[Request]} Request  [Request object]
+       * @param  {[Response]} Response [Response object]
+       * @return {[Response]}          [Returned response to requestor]
+       */
         $app->post('/addreport', function(Request $req, Response $res) use ($app){
 
             $report = $req->getParsedBody();
@@ -117,21 +188,31 @@ $app->group('/api/v1', function () use ($app) {
 
         });
 
-        //get all reports
+        /**
+         * [Handle 'reports/all' POST requests]
+         * @param  {[Request]} Request  [Request object]
+         * @param  {[Response]} Response [Response object]
+         * @return {[Response]}          [Returned response to requestor]
+         */
         $app->post('/all', function (Request $req, Response $res) use ($app){
 
             $csoID = 0;
             if (!empty($req->getParsedBody()['cso_id'])) {
                 $csoID = $req->getParsedBody()['cso_id'];
             }
-            
+
             $allreports = $this->reports->GetAllReports($csoID);
 
-            return (sizeof($allreports) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "reports" => $allreports["all"], "user_reports" => $allreports["user"])): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "reports" => NULL));
+            return (sizeof($allreports) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "reports" => $allreports["all"], "user_reports" => $allreports["user"])): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "reports" => array()));
 
         });
 
-        //update report
+        /**
+         * [Handle 'reports/addcontact' POST requests]
+         * @param  {[Request]} Request  [Request object]
+         * @param  {[Response]} Response [Response object]
+         * @return {[Response]}          [Returned response to requestor]
+         */
         $app->post('/addcontact', function (Request $req, Response $res) use ($app){
 
             $report = $req->getParsedBody();
@@ -143,10 +224,19 @@ $app->group('/api/v1', function () use ($app) {
         });
 });
 
-        /*** CASE ACTIVITY ***/
+
+    /**
+     * [Handle - /api/v1/activity routes]
+     * @return {[Response]} [Server response]
+     */
     $app->group('/activity', function () use ($app){
-        
-        //add note
+
+      /**
+       * [Handle 'activity/addactivity' POST requests]
+       * @param  {[Request]} Request  [Request object]
+       * @param  {[Response]} Response [Response object]
+       * @return {[Response]}          [Returned response to requestor]
+       */
         $app->post('/addactivity', function (Request $req, Response $res) use ($app){
 
             $note = $req->getParsedBody();
@@ -157,23 +247,30 @@ $app->group('/api/v1', function () use ($app) {
 
             $result = $this->reports->AddNote($note);
 
-            return ($result) ? $res->withJson(array(getenv('STATUS') => getenv('SUCCESS_STATUS'), getenv('MSG') => getenv('NOTE_SUCCESS_MSG'))): $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => getenv('NOTE_FAILURE_MSG'))); 
+            return ($result) ? $res->withJson(array(getenv('STATUS') => getenv('SUCCESS_STATUS'), getenv('MSG') => getenv('NOTE_SUCCESS_MSG'))): $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => getenv('NOTE_FAILURE_MSG')));
 
         });
 
-        //get all case notes
+        /**
+         * [Handle 'activity/all' POST requests]
+         * @param  {[Request]} Request  [Request object]
+         * @param  {[Response]} Response [Response object]
+         * @return {[Response]}          [Returned response to requestor]
+         */
         $app->post('/all', function (Request $req, Response $res) use ($app){
 
              $allnotes = $this->reports->GetAllNotes();
 
-             return (sizeof($allnotes) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "notes" => $allnotes)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "notes" => NULL));
+             return (sizeof($allnotes) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "notes" => $allnotes)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "notes" => array()));
 
         });
 
     });
 })->add(new pal\AuthMiddleware());
 
-//run api app
+/**
+ * Run SLIM app
+ */
 $app->run();
 
 ?>

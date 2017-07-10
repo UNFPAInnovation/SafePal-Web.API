@@ -5,23 +5,23 @@ namespace SafePal;
 use \Geocoder\Provider\GoogleMaps as gmaps;
 
 //adapter
-use \Ivory\HttpAdapter\CurlHttpAdapter as CurlHttpAdapter; 
+use \Ivory\HttpAdapter\CurlHttpAdapter as CurlHttpAdapter;
 
 /**
 * Handles all mapping-related work
 */
-final class SafePalMapping 
+final class SafePalMapping
 {
 	protected $curl;
 	protected $maps;
 
 	 function __construct()
-    {	
+    {
     	//curl http adapter -- *note: should be optional since slim already implements PSR-7
         $this->curl = new CurlHttpAdapter();
         $this->maps = new gmaps($this->curl);
     }
-	
+
 	public function GetLocationDistrict($lat, $long){
 
 		if (!empty($lat) && !empty($long)) {
@@ -34,15 +34,15 @@ final class SafePalMapping
 		}
 	}
 
-	public function checkIfGeoPointInRadius($lat1, $long1, $lat2, $long2, $radius = 5.0){ //5km radius
-		//calculate distance -- 
+	public function checkIfGeoPointInRadius($lat1, $long1, $lat2, $long2, $radius = 10.0){ //5km radius
+		//calculate distance --
 		$distance = $this->calculateGreatCircleDistance(floatval($lat1), floatval($long1), floatval($lat2), floatval($long2));
-		
+
 		if($distance <= $radius) return true;
 		return false;
 	}
 
-	/* 
+	/*
 	-- alternate implementation of Haversian Formula
 	*/
 	private function calculateGreatCircleDistance($lat1, $long1, $lat2, $long2, $earthRadius = 6371){
@@ -65,12 +65,12 @@ final class SafePalMapping
 	  	/*
 	  		$theta = $lat1 - $long1;
 
-		$d = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) 
+		$d = sin(deg2rad($lat1)) * sin(deg2rad($lat2))
 			+ cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
 
 		$d = (float) rad2deg(acos($d)) * 69.09; //converted to miles from nautical miles? (60 * 1.1515)
 	  	*/
 	}
-	
+
 }
 ?>

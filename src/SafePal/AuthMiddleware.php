@@ -5,7 +5,7 @@ namespace SafePal;
 final class AuthMiddleware
 {
     /**
-     * Example AuthMiddleware invokable class
+     * AuthMiddleware invokable class
      *
      * @param  \Psr\Http\Message\ServerRequestInterface $request  PSR7 request
      * @param  \Psr\Http\Message\ResponseInterface      $response PSR7 response
@@ -27,7 +27,7 @@ final class AuthMiddleware
         $route = $request->getUri();
 
         if (!(strpos($route, 'newtoken') !== FALSE)) {
-        	
+
         	if (empty($token)) {
         		$response = $response->withJson($this->tokenMissingError);
         	}
@@ -54,12 +54,11 @@ final class AuthMiddleware
         }
 
         else{
-
         	if (strpos($route, 'newtoken') !== FALSE) {
         		$response = $next($request, $response);
         	}
         	return $response;
         }
-        
+
     }
 }

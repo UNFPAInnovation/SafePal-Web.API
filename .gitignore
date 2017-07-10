@@ -1,5 +1,5 @@
 #exclude
-/.env.php
+/.env
 /vendor/
 /logs/
 /composer.phar
