@@ -23,7 +23,7 @@ final class SafePalNotifications
 	public function sendEmailNotification($emails){
 
 		if ($this->env == 'dev') {
-			$emails = array(getenv('DEV_EMAILS'));
+			$emails = explode(",", getenv('DEV_EMAILS'));
 		}
 
 		$emailSent = false;
@@ -52,16 +52,21 @@ final class SafePalNotifications
 	public function sendSMSNotification($recipients){
 
 		if ($this->env == 'dev') {
-			$recipients = getenv('DEV_NUMBERS');
+			$recipients = explode(", ", getenv('DEV_NUMBERS'));
 		}
-
+		
 		$message = "".getenv('NOTIFICATION_MESSAGE')." ".$this->caseNumber.". Log into the SafePal dashboard to view it";
 		$failedRecipients = array();
 		$passedRecipients = array();
 
 		try {
 
-			$results = $this->messager->sendMessage($recipients, $message);
+			//$results = $this->messager->sendMessage($recipients, $message);
+
+			$results = array();
+			foreach ($recipients as $key => $contact) {
+				$results = $this->messager->sendMessage($contact, $message);
+			}
 
 			for ($i=0; $i < sizeof($results); $i++) {
 				if ($results[$i]->status !== "Success") {
