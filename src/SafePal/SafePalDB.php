@@ -233,6 +233,7 @@ final class SafePalDB
 	//check auth
 	public function CheckAuth($user, $hash){
 		$query = $this->pdo->prepare(getenv('CHECKAUTH_QUERY'));
+		
 		$query->execute(array("hash" => $hash, "username" => $user));
 
 		$result = $query->fetchAll();

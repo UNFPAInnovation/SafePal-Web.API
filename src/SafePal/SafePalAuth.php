@@ -67,7 +67,8 @@ final class SafePalAuth
 
 	//authenticate user
 	public function CheckAuth($username, $hash){
-		return $this->db->CheckAuth($username, $hash);
+		$pHash = explode('.', $hash); //get hash
+		return $this->db->CheckAuth($username, $pHash[0]);
 	}
 
 	//logout
