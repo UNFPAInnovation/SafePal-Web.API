@@ -18,7 +18,7 @@ use Monolog\Handler\StreamHandler;
  * [$dotenv load env variables]
  * @type {Dotenv}
  */
-$dotenv = new Dotenv\Dotenv(__DIR__, 'example.env');
+$dotenv = new Dotenv\Dotenv(__DIR__, '.env');
 $dotenv->load();
 
 /**
