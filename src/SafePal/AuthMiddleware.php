@@ -1,5 +1,4 @@
 <?php
-
 namespace SafePal;
 
 final class AuthMiddleware
@@ -62,3 +61,4 @@ final class AuthMiddleware
 
     }
 }
+?>

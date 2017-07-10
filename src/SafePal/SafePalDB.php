@@ -23,7 +23,7 @@ final class SafePalDB
 	{
 
 		if (getenv('APP_ENV') != 'dev') {
-			$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'));
+			$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'), ''.getenv('DBPWD'));
 		} else {
 			$cleardb = parse_url(getenv("CLEARDB_DATABASE_URL"));
 			$this->pdo = new \PDO("mysql:host=".$cleardb['host'].";dbname=".substr($cleardb["path"], 1).";charset=utf8",$cleardb['user'], $cleardb['pass']);
@@ -111,8 +111,7 @@ final class SafePalDB
 					$mapDistance = new SafePalMapping();
 					$csos = $this->GetCSOs(); //get list of csos
 					$nearbycsos = array();
-
-
+					
 					for ($i=0; $i < sizeof($csos); $i++) {
 
 						$isCSOInRadius = $mapDistance->checkIfGeoPointInRadius($report['latitude'], $report['longitude'],$csos[$i]['cso_latitude'], $csos[$i]['cso_longitude']); //5km radius
@@ -120,7 +119,7 @@ final class SafePalDB
 						if ($isCSOInRadius) {
 							//--notify via email TO-DO: Refactor -- also change to directly working with $result['csos'] with indices
 							array_push($nearbycsos, $csos[$i]);
-
+							
 							if (!empty($csos[$i]['cso_email'])) { //only send email to csos with emails
 								$mailNotification = $safePalNotifications->sendEmailNotification($csos[$i]['cso_email']);
 								$this->LogNotification($csos[$i]['cso_email'], $result['caseNumber'], 'email', $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString());

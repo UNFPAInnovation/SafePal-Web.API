@@ -1,5 +1,4 @@
 <?php
-
 namespace SafePal;
 
 use Predis as redis;
@@ -20,12 +19,16 @@ final class SafePalAuth
 	function __construct()
 	{
 		try {
-			$this->redis = new redis\Client(getenv('REDIS_URL'));
+			//$this->redis = new redis\Client(getenv('REDIS_URL'));
+			$this->redis = ((getenv('APP_ENV') == 'dev') ? new redis\Client(getenv('REDIS_URL')) : new redis\Client([
+				'host'   => getenv('REDIS_HOST'),
+				'password' => getenv('REDIS_PWD'), 
+				'port'   => getenv('REDIS_PORT'),]));
 		} catch (Exception $e) {
 
 			throw new Exception($e->getMessage(), 1);
 		}
-
+		
 		$this->db = new SafePalDB();
 	}
 
