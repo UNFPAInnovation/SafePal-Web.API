@@ -2,7 +2,8 @@
 namespace SafePal;
 
 //geocoder
-use \Geocoder\Provider\GoogleMaps as gmaps;
+use \Geocoder\Query\ReverseQuery as gmaps;
+//use \Geocoder\Provider\GoogleMaps as gmaps;
 
 //adapter
 use \Ivory\HttpAdapter\CurlHttpAdapter as CurlHttpAdapter;
@@ -14,12 +15,15 @@ final class SafePalMapping
 {
 	protected $curl;
 	protected $maps;
+	protected $adapter;
+	protected $provider;
+	protected $geocoder;
 
 	 function __construct()
     {
-    	//curl http adapter -- *note: should be optional since slim already implements PSR-7
-        $this->curl = new CurlHttpAdapter();
-        $this->maps = new gmaps($this->curl);
+    	$this->adapter = new \Http\Adapter\Guzzle6\Client();
+        $this->provider = $provider = new \Geocoder\Provider\GoogleMaps\GoogleMaps($this->adapter, 'ug', getenv('GMAPS_KEY'));
+        $this->geocoder = new \Geocoder\StatefulGeocoder($provider, 'en');
     }
 
 	public function GetLocationDistrict($lat, $long){
@@ -70,6 +74,19 @@ final class SafePalMapping
 
 		$d = (float) rad2deg(acos($d)) * 69.09; //converted to miles from nautical miles? (60 * 1.1515)
 	  	*/
+	}
+
+	//reverse geocode location
+	public function ReverseGeoCodeLocation($lat, $long){
+		$result = $this->geocoder->reverseQuery(gmaps::fromCoordinates($lat, $long))->first();
+		$location['country'] = $result->getPolitical();
+		$location['neighbourhood'] = $result->getNeighborhood();
+		$location['address'] = $result->getFormattedAddress();
+		$location['sublocalities'] = $result->getSubLocalityLevels();
+		$location['district'] = $result->getLocality();
+		$location['subcounty'] = $result->getSubLocality();
+		$location['streetname'] = $result->getStreetName();
+		return $location;
 	}
 
 }

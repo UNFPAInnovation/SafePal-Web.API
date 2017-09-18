@@ -73,16 +73,24 @@ final class SafePalDB
 		$query = getenv('ADD_REPORT_QUERY_1').' VALUES '.getenv('ADD_REPORT_QUERY_2');
 
 		if (!empty($report)) {
+			
+			//location details
+			if ((!empty($report['latitude']) && $report['latitude'] != "0") && (!empty($report['longitude']) && $report['longitude'] != "0")) {
+				$location = $this->GetReporterLocation($report['latitude'], $report['longitude']);
+			}
+
+
 			$query_params = array(
 						'type' => $report['type'],
 						'typeID' => $typeID,
 				        'gender' => $report['gender'],
 				        'reporter' => $report['reporter'],
 				        'reporter_relationship' => $reporter_relationship,
-				        'district' => $district,
+				        'district' => (!empty($location['district'])) ? $location['district'] : "Unknown",
+				        'subcounty' => (!empty($location['subcounty'])) ? $location['subcounty'] : "Unknown",
+				        'location' => (!empty($location['location'])) ? $location['location'] : "Unknown",
 				        'latitude' => $report['latitude'],
 				        'longitude' => $report['longitude'],
-				        'location' => $district,
 				        'reportDate' => $report['reportDate'],
 				        'incident_date' => $report['incident_date'],
 				    	'perpetuator' => $report['perpetuator'],
