@@ -21,7 +21,9 @@ final class SafePalMapping
 
 	 function __construct()
     {
-    	$this->adapter = new \Http\Adapter\Guzzle6\Client();
+    	//curl http adapter -- *note: should be optional since slim already implements PSR-7
+        //$this->curl = new CurlHttpAdapter();
+        $this->adapter = new \Http\Adapter\Guzzle6\Client();
         $this->provider = $provider = new \Geocoder\Provider\GoogleMaps\GoogleMaps($this->adapter, 'ug', getenv('GMAPS_KEY'));
         $this->geocoder = new \Geocoder\StatefulGeocoder($provider, 'en');
     }
@@ -88,6 +90,5 @@ final class SafePalMapping
 		$location['streetname'] = $result->getStreetName();
 		return $location;
 	}
-
 }
 ?>

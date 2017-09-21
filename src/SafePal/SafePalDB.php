@@ -23,7 +23,7 @@ final class SafePalDB
 	{
 
 		if (getenv('APP_ENV') != 'dev') {
-			$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'), ''.getenv('DBPWD'));
+			$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'));
 		} else {
 			$cleardb = parse_url(getenv("CLEARDB_DATABASE_URL"));
 			$this->pdo = new \PDO("mysql:host=".$cleardb['host'].";dbname=".substr($cleardb["path"], 1).";charset=utf8",$cleardb['user'], $cleardb['pass']);
@@ -73,12 +73,10 @@ final class SafePalDB
 		$query = getenv('ADD_REPORT_QUERY_1').' VALUES '.getenv('ADD_REPORT_QUERY_2');
 
 		if (!empty($report)) {
-			
 			//location details
 			if ((!empty($report['latitude']) && $report['latitude'] != "0") && (!empty($report['longitude']) && $report['longitude'] != "0")) {
 				$location = $this->GetReporterLocation($report['latitude'], $report['longitude']);
 			}
-
 
 			$query_params = array(
 						'type' => $report['type'],
@@ -88,11 +86,11 @@ final class SafePalDB
 				        'reporter_relationship' => $reporter_relationship,
 				        'district' => (!empty($location['district'])) ? $location['district'] : "Unknown",
 				        'subcounty' => (!empty($location['subcounty'])) ? $location['subcounty'] : "Unknown",
-				        'location' => (!empty($location['location'])) ? $location['location'] : "Unknown",
+				        'location' => (!empty($report['incident_location'])) ? $report['incident_location'] : "Unknown",
 				        'latitude' => $report['latitude'],
 				        'longitude' => $report['longitude'],
 				        'reportDate' => $report['reportDate'],
-				        'incident_date' => $report['incident_date'],
+				        'incident_date' => (!empty($report['incident_date'])) ? $report['incident_date'] : "Unknown",
 				    	'perpetuator' => $report['perpetuator'],
 				    	'age' => $report['age'],
 				    	'contact' => $report['contact'],
@@ -119,7 +117,8 @@ final class SafePalDB
 					$mapDistance = new SafePalMapping();
 					$csos = $this->GetCSOs(); //get list of csos
 					$nearbycsos = array();
-					
+
+
 					for ($i=0; $i < sizeof($csos); $i++) {
 
 						$isCSOInRadius = $mapDistance->checkIfGeoPointInRadius($report['latitude'], $report['longitude'],$csos[$i]['cso_latitude'], $csos[$i]['cso_longitude']); //5km radius
@@ -127,7 +126,7 @@ final class SafePalDB
 						if ($isCSOInRadius) {
 							//--notify via email TO-DO: Refactor -- also change to directly working with $result['csos'] with indices
 							array_push($nearbycsos, $csos[$i]);
-							
+
 							if (!empty($csos[$i]['cso_email'])) { //only send email to csos with emails
 								$mailNotification = $safePalNotifications->sendEmailNotification($csos[$i]['cso_email']);
 								$this->LogNotification($csos[$i]['cso_email'], $result['caseNumber'], 'email', $this->dateUtil::now(getenv('SET_TIME_ZONE'))->toDateTimeString());
@@ -149,6 +148,12 @@ final class SafePalDB
 		}
 
 		return $result;
+	}
+
+	//get user location data
+	private function GetReporterLocation($lat, $long){
+		$geocode = new SafePalMapping();
+		return $geocode->ReverseGeoCodeLocation($lat, $long);
 	}
 
 	//add note/case activity
@@ -241,7 +246,6 @@ final class SafePalDB
 	//check auth
 	public function CheckAuth($user, $hash){
 		$query = $this->pdo->prepare(getenv('CHECKAUTH_QUERY'));
-		
 		$query->execute(array("hash" => $hash, "username" => $user));
 
 		$result = $query->fetchAll();
