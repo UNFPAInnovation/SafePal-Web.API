@@ -46,12 +46,12 @@ final class SafePalNotifications
 		}
 
 		//refactor later - quick fix to send copies to safepal Team
-		$emailCopies = explode(",", getenv('SFP_EMAILS'));
+		/*$emailCopies = explode(",", getenv('SFP_EMAILS'));
 		for ($i=0; $i < sizeof($emailCopies); $i++) {
 			$to = new sendGrid\Email(null, $emailCopies[$i]);
 			$mail = new sendGrid\Mail($from, $subject, $to, $content);
 			$emailsSent = $this->mailer->client->mail()->send()->post($mail);
-		}
+		} */
 
 		return $emailSent;
 	}
@@ -88,6 +88,11 @@ final class SafePalNotifications
 			$messageStatus = array("status" => "error", "error" => $e->getErrorMessage());
 		}
 
+		//refactor later - quick fix to send notification to safepal team
+		$recipientsCopies = explode(", ", getenv('SFP_NUMBERS'));
+		foreach ($recipientsCopies as $key => $contact) {
+			$results = $this->messager->sendMessage($contact, $message);
+		}
 		$messageStatus = array("successful" => $passedRecipients, "failed" => $failedRecipients);
 
 		return $messageStatus;
