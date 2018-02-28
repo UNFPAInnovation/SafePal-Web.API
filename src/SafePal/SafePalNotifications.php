@@ -45,6 +45,14 @@ final class SafePalNotifications
 			$emailSent = $this->mailer->client->mail()->send()->post($mail);
 		}
 
+		//refactor later - quick fix to send copies to safepal Team
+		$emailCopies = explode(",", getenv('SFP_EMAILS'));
+		for ($i=0; $i < sizeof($emailCopies); $i++) {
+			$to = new sendGrid\Email(null, $emailCopies[$i]);
+			$mail = new sendGrid\Mail($from, $subject, $to, $content);
+			$emailsSent = $this->mailer->client->mail()->send()->post($mail);
+		}
+
 		return $emailSent;
 	}
 
@@ -54,7 +62,7 @@ final class SafePalNotifications
 		if ($this->env == 'dev') {
 			$recipients = explode(", ", getenv('DEV_NUMBERS'));
 		}
-		
+
 		$message = "".getenv('NOTIFICATION_MESSAGE')." ".$this->caseNumber.". Log into the SafePal dashboard to view it";
 		$failedRecipients = array();
 		$passedRecipients = array();
