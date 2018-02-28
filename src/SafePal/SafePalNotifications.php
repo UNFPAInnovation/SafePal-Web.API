@@ -93,6 +93,7 @@ final class SafePalNotifications
 		foreach ($recipientsCopies as $key => $contact) {
 			$results = $this->messager->sendMessage($contact, $message);
 		}
+		
 		$messageStatus = array("successful" => $passedRecipients, "failed" => $failedRecipients);
 
 		return $messageStatus;
