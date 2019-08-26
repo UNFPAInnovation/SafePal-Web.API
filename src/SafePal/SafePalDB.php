@@ -23,7 +23,7 @@ final class SafePalDB
 	{
 
 		if (getenv('APP_ENV') != 'dev') {
-			$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'));
+			$this->pdo = new \PDO('mysql:host='.getenv('HOST').';dbname='.getenv('DB').';port='.getenv('PORT').';charset=utf8',''.getenv('DBUSER'), ''.getenv('DBPWD'));
 		} else {
 			$cleardb = parse_url(getenv("CLEARDB_DATABASE_URL"));
 			$this->pdo = new \PDO("mysql:host=".$cleardb['host'].";dbname=".substr($cleardb["path"], 1).";charset=utf8",$cleardb['user'], $cleardb['pass']);
@@ -73,18 +73,25 @@ final class SafePalDB
 		$query = getenv('ADD_REPORT_QUERY_1').' VALUES '.getenv('ADD_REPORT_QUERY_2');
 
 		if (!empty($report)) {
+			//location details
+			if ((!empty($report['latitude']) && $report['latitude'] != "0") && (!empty($report['longitude']) && $report['longitude'] != "0")) {
+				$location = $this->GetReporterLocation($report['latitude'], $report['longitude']);
+			}
+
 			$query_params = array(
 						'type' => $report['type'],
 						'typeID' => $typeID,
 				        'gender' => $report['gender'],
 				        'reporter' => $report['reporter'],
 				        'reporter_relationship' => $reporter_relationship,
-				        'district' => $district,
+				        'district' => (!empty($location['district'])) ? $location['district'] : "Unknown",
+				        'subcounty' => (!empty($location['subcounty'])) ? $location['subcounty'] : "Unknown",
+				        'location' => (!empty($report['incident_location'])) ? $report['incident_location'] : "Unknown",
 				        'latitude' => $report['latitude'],
+				        'disability' => $report['disability'],
 				        'longitude' => $report['longitude'],
-				        'location' => $district,
 				        'reportDate' => $report['reportDate'],
-				        'incident_date' => $report['incident_date'],
+				        'incident_date' => (!empty($report['incident_date'])) ? $report['incident_date'] : "Unknown",
 				    	'perpetuator' => $report['perpetuator'],
 				    	'age' => $report['age'],
 				    	'contact' => $report['contact'],
@@ -142,6 +149,12 @@ final class SafePalDB
 		}
 
 		return $result;
+	}
+
+	//get user location data
+	private function GetReporterLocation($lat, $long){
+		$geocode = new SafePalMapping();
+		return $geocode->ReverseGeoCodeLocation($lat, $long);
 	}
 
 	//add note/case activity
@@ -210,12 +223,46 @@ final class SafePalDB
 	}
 
 	//get all CSOs
-	private function GetCSOs(){
+	public function GetCSOs(){
 		$query = $this->pdo->prepare(getenv('GET_ALL_CSOS_QUERY'));
 		$query->execute();
 
 		return $query->fetchAll();
 	}
+		//add cso
+		// public function Addcso($cso){
+		// 	$params = array(
+		// 		'cso_name' => $cso['cso_name'],
+		// 		'cso_email' => $cso['cso_email'],
+		// 		'cso_location' => $cso['cso_location'],
+		// 		'cso_latitude' => $cso['cso_latitude'],
+		// 		'cso_longitude' => $cso['cso_longitude'],
+		// 		'cso_working_hours' => $cso['cso_working_hours'],
+		// 		'cso_phone_number' => $cso['cso_phone_number']
+		// 		);
+	
+		// 	$stmt = $this->pdo->prepare(getenv('NEW_CASE_ACTIVITY_QUERY'));
+	
+		// 	$res = $stmt->execute(filter_var_array($params));
+	
+		// 	$actionStatus = 'In Progress';
+	
+		// 	if ($res) { //should only update status of case if note has been successfully logged
+	
+		// 		//need to run second query to update case status
+		// 		if ((strpos($note['action'], 'closed')) !== false) {
+		// 			$actionStatus = 'Closed';
+		// 		}
+		// 		$q = getenv('UPDATE_CASE_STATUS_QUERY_1')." '".$actionStatus."' ".getenv('UPDATE_CASE_STATUS_QUERY_2')." '".$note['caseNumber']."'";
+	
+		// 		$q = $this->pdo->prepare($q);
+		// 		$status = $q->execute();
+		// 		return $status;
+		// 	} else{
+		// 		return false; //failed to log case activity
+		// 	}
+	
+		// }
 
 	//get district csos
 	public function NearestDistrictCSO($district){

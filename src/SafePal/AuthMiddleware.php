@@ -1,5 +1,4 @@
 <?php
-
 namespace SafePal;
 
 final class AuthMiddleware
@@ -25,9 +24,7 @@ final class AuthMiddleware
         $userid = $request->getHeaderLine('userid');
         $token = $request->getParsedBody()['token'];
         $route = $request->getUri();
-
         if (!(strpos($route, 'newtoken') !== FALSE)) {
-
         	if (empty($token)) {
         		$response = $response->withJson($this->tokenMissingError);
         	}
@@ -62,3 +59,4 @@ final class AuthMiddleware
 
     }
 }
+?>

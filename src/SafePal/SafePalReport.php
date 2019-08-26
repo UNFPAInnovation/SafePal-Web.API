@@ -38,7 +38,7 @@ final class SafePalReport
 		return $reports;
 	}
 
-	//add contact to report
+	//add contact to reportAddReport
 	public function AddContact($caseNumber, $contact){
 		$response = $this->db->AddContactToReport($caseNumber, $contact);
 		return $response;

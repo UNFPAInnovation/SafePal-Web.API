@@ -2,11 +2,11 @@
 
 namespace SafePal;
 
-//db
-use SafePalDB;
+// //db
+// use SafePalDB;
 
 //mapping
-use SafePalMapping;
+ use SafePalMapping;
 
 /**
 * 
@@ -14,42 +14,55 @@ use SafePalMapping;
 final class SafePalCSO
 {
 	/* PROPERTIES */
-	private protected $cso_name;
+	private $cso_name;
 
-	private protected $cso_latitude;
+	private $cso_latitude;
 
-	private protected $cso_longitude; 
+	private $cso_longitude; 
 
-	private protected $typeofownership; 
+	private $typeofownership; 
 
-	private protected $contacts;
+	private $contacts;
 
-	private protected $db;
+	private $db;
 
-	private protected $map;
+	private $map;
 
 
 	 function __construct()
 	{
-		$this->db = new SafePalDb;
-		$this->map = new SafePalMapping;
+		$this->db = new SafePalDb();
+		//$this->map = new SafePalMapping;
 	} 
 
 	//add new cso
-	public function AddCSO($name, $latitude, $longitude, $contactsArray, $typeofownership = "NGO"){
-		$this->cso_name = $name;
-		$this->cso_latitude = $latitude;
-		$this->cso_latitude = $longitude;
-		$this->contacts = $contacts; 
-		$this->typeofownership = $typeofownership;
+	// public function AddCSO($name, $latitude, $longitude, $contactsArray, $typeofownership = "NGO"){
+	// 	$this->cso_name = $name;
+	// 	$this->cso_latitude = $latitude;
+	// 	$this->cso_latitude = $longitude;
+	// 	$this->contacts = $contacts; 
+	// 	$this->typeofownership = $typeofownership;
 
-		$cso = $this;
+	// 	$cso = $this;
 
-		$res = $this->db->AddCSO($cso);
-		return $res;
-	}
+	// 	$res = $this->db->AddCSO($cso);
+	// 	return $res;
+	// }
 
 	//get all CSOs
+	public function GetAllCSOs(){
+			$csos = $this->db->GetCSOs();
+			return $csos;
+	}
+
+	//add csos
+	public function AddReport($reportarray){
+		$typeID = $this->getTypeID($reportarray['type']);
+		$data = $this->db->SaveReport((array)$reportarray, $typeID);
+		$this->db = null; //close connection
+		return $data;
+	}
+
 	//return array of csos with 
 	public static function GetNearestCSO($reportergps){
 
@@ -65,6 +78,9 @@ final class SafePalCSO
 
 		$this->db = null; //close connection
 	}
+
+
+	//GetCSOs
 }
 
 ?>

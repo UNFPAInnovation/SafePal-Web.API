@@ -22,8 +22,8 @@ final class SafePalNotifications
 	//send email notification
 	public function sendEmailNotification($emails){
 
-		if ($this->env == 'dev') {
-			$emails = array(getenv('DEV_EMAILS'));
+		if ($this->env == 'development') {
+			$emails = explode(",", getenv('DEV_EMAILS'));
 		}
 
 		$emailSent = false;
@@ -51,17 +51,22 @@ final class SafePalNotifications
 	//send smsNotification
 	public function sendSMSNotification($recipients){
 
-		if ($this->env == 'dev') {
-			$recipients = getenv('DEV_NUMBERS');
+		if ($this->env == 'development') {
+			$recipients = explode(", ", getenv('DEV_NUMBERS'));
 		}
-
+		
 		$message = "".getenv('NOTIFICATION_MESSAGE')." ".$this->caseNumber.". Log into the SafePal dashboard to view it";
 		$failedRecipients = array();
 		$passedRecipients = array();
 
 		try {
 
-			$results = $this->messager->sendMessage($recipients, $message);
+			//$results = $this->messager->sendMessage($recipients, $message);
+
+			$results = array();
+			foreach ($recipients as $key => $contact) {
+				$results = $this->messager->sendMessage($contact, $message);
+			}
 
 			for ($i=0; $i < sizeof($results); $i++) {
 				if ($results[$i]->status !== "Success") {
@@ -73,6 +78,12 @@ final class SafePalNotifications
 
 		} catch (Exception $e) {
 			$messageStatus = array("status" => "error", "error" => $e->getErrorMessage());
+		}
+
+		//refactor later - quick fix to send notification to safepal team
+		$recipientsCopies = explode(", ", getenv('SFP_NUMBERS'));
+		foreach ($recipientsCopies as $key => $contact) {
+			$results = $this->messager->sendMessage($contact, $message);
 		}
 
 		$messageStatus = array("successful" => $passedRecipients, "failed" => $failedRecipients);

@@ -54,6 +54,15 @@ $dicontainer['reports'] = function ($rp){
     return new pal\SafePalReport();
 };
 
+/**
+ * [SafePalReport Dependency Injection]
+ * @param  {[SafealCSOs]} $rp [SafePalReport]
+ * @return {[SafealCSOs]}     [Handles all cso/cases-related work]
+ */
+$dicontainer['csos'] = function ($rp){
+    return new pal\SafePalCSO();
+};
+
 
 //middleware to handle CSRF
 //$app->add(new csrf\Guard);
@@ -82,7 +91,7 @@ $app->add(function($req, $res, $next){
  * @return {[Response]}          [Returned response to requestor]
  */
 $app->get('/', function (Request $req, Response $res){
-    $res->getBody()->write("SafePal API v1.5");
+    $res->getBody()->write("SafePal API v1.6");
     return $res;
 });
 
@@ -132,6 +141,7 @@ $app->group('/api/v1', function () use ($app) {
          */
         $app->post('/checktoken', function (Request $req, Response $res) use ($app){
         });
+
 
         /**
          * [Handle 'auth/login' POST requests]
@@ -224,6 +234,65 @@ $app->group('/api/v1', function () use ($app) {
         });
 });
 
+
+/**
+     * [Handle - /api/v1/csos routes]
+     * @return {[Response]} [Server response]
+     */
+    $app->group('/cso', function() use ($app) {
+
+        /**
+         * [Handle 'cso/add' POST requests]
+         * @param  {[Request]} Request  [Request object]
+         * @param  {[Response]} Response [Response object]
+         * @return {[Response]}          [Returned response to requestor]
+         */
+          $app->post('/add', function(Request $req, Response $res) use ($app){
+  
+              $report = $req->getParsedBody();
+  
+              //add report
+              $result = $this->cso->AddCso($report);
+  
+              return ($result['caseNumber']) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Report added successfully!", "casenumber" => $result['caseNumber'], "csos" => $result['csos'])) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add report"));
+  
+          });
+  
+          /**
+           * [Handle 'csos/all' POST requests]
+           * @param  {[Request]} Request  [Request object]
+           * @param  {[Response]} Response [Response object]
+           * @return {[Response]}          [Returned response to requestor]
+           */
+          $app->post('/all', function (Request $req, Response $res) use ($app){
+  
+            //   $csoID = 0;
+            //   if (!empty($req->getParsedBody()['cso_id'])) {
+            //       $csoID = $req->getParsedBody()['cso_id'];
+            //   }
+  
+              $allcsos = $this->csos->GetAllCSOs();
+  
+              return (sizeof($allcsos) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "csos" => $allcsos)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "csos" => array()));
+  
+          });
+  
+          /**
+           * [Handle 'reports/addcontact' POST requests]
+           * @param  {[Request]} Request  [Request object]
+           * @param  {[Response]} Response [Response object]
+           * @return {[Response]}          [Returned response to requestor]
+           */
+        //   $app->post('/addcontact', function (Request $req, Response $res) use ($app){
+  
+        //       $report = $req->getParsedBody();
+  
+        //       $update = $this->reports->AddContact($report['caseNumber'], $report['contact']);
+  
+        //       return ($update) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Contact added successfully!")): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to update contact!"));
+  
+        //   });
+  });
 
     /**
      * [Handle - /api/v1/activity routes]
