@@ -1,5 +1,5 @@
 <?php
-
+header('Content-type:application/json');
 require_once "vendor/autoload.php";
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
@@ -153,12 +153,25 @@ $app->group('/api/v1', function () use ($app) {
 
             $username = $req->getParsedBody()['username'];
             $hash = $req->getParsedBody()['hash'];
-            $user = $this->auth->CheckAuth($username, $hash, $eventTime);
+            $user = $this->auth->CheckAuth($username, $hash);
+            //error_log(print_r($user, true));
             if (sizeof($user) > 0) {
               $isLogged = $this->auth->LogAccess($username, 'login');
             }
             return (sizeof($user) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "user" => $user)) : $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), getenv('MSG') => "Login failed!"));
         });
+
+        $app->post('/register', function(Request $req, Response $res) use ($app){
+  
+            $auth = $req->getParsedBody();
+
+            //add report
+            $result = $this->auth->RegisterAuth($auth);
+             // print_r($result);
+            return ($result) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Auth added successfully!")) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add auth"));
+
+        });
+
 
         /**
          * [Handle 'auth/logout' POST requests]
@@ -252,11 +265,22 @@ $app->group('/api/v1', function () use ($app) {
               $report = $req->getParsedBody();
   
               //add report
-              $result = $this->cso->AddCso($report);
-  
-              return ($result['caseNumber']) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Report added successfully!", "casenumber" => $result['caseNumber'], "csos" => $result['csos'])) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add report"));
+              $result = $this->csos->AddCso($report);
+               // print_r($result);
+              return ($result) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "CSO added successfully!")) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add report"));
   
           });
+
+          $app->put('/', function(Request $req, Response $res) use ($app){
+  
+            $report = $req->getParsedBody();
+
+            //add report
+            $result = $this->csos->updateCso($report);
+             // print_r($result);
+            return ($result) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "CSO updated successfully!")) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to updated report"));
+
+        });
   
           /**
            * [Handle 'csos/all' POST requests]
@@ -274,6 +298,24 @@ $app->group('/api/v1', function () use ($app) {
               $allcsos = $this->csos->GetAllCSOs();
   
               return (sizeof($allcsos) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "csos" => $allcsos)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "csos" => array()));
+  
+          });
+          $app->post('/', function (Request $req, Response $res) use ($app){
+  
+              $csoID = null;
+              if (!empty($req->getParsedBody()['cso_id'])) {
+                  $csoID = $req->getParsedBody()['cso_id'];
+              }
+  
+              $cso = $this->csos->GetCSO($csoID);
+
+              echo json_encode(array(
+                'status' => 'success',
+                'data' => $cso[0]
+            ));
+            exit();
+  
+           //   return $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "cso" => $cso)));
   
           });
   

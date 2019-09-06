@@ -125,7 +125,7 @@ final class SafePalDB
 						$isCSOInRadius = $mapDistance->checkIfGeoPointInRadius($report['latitude'], $report['longitude'],$csos[$i]['cso_latitude'], $csos[$i]['cso_longitude']); //5km radius
 
 						if ($isCSOInRadius) {
-							//--notify via email TO-DO: Refactor -- also change to directly working with $result['csos'] with indices
+							$rehashed = password_hash($user_password, PASSWORD_DEFAULT);	//--notify via email TO-DO: Refactor -- also change to directly working with $result['csos'] with indices
 							array_push($nearbycsos, $csos[$i]);
 
 							if (!empty($csos[$i]['cso_email'])) { //only send email to csos with emails
@@ -229,40 +229,99 @@ final class SafePalDB
 
 		return $query->fetchAll();
 	}
+
+	/*
+		USER AUTH SECTION
+	*/
+	public function AddAuth($auth){
+		$params = array(
+			'userid' => hash('crc32b', $auth['username']),
+			'username' => $auth['username'],
+			'hash' => password_hash($auth['password'], PASSWORD_DEFAULT),
+			'cso_id' => $auth['cso_id']
+			);
+			//system("echo ".$params['username']);
+			error_log(print_r($params, true));
+
+
+		$stmt = $this->pdo->prepare(getenv('NEW_AUTH_QUERY'));
+
+		$res = $stmt->execute(filter_var_array($params));
+
+		// should check if cso already exists
+		
+		if ($res) {
+			return true;
+		} else{
+			error_log("Failed to add cso", 0);
+			return false; //failed to log case activity
+		}	
+	}
+
+
+	//get CSO by Id
+	public function GetCSO($id){
+		$nCSO = $this->pdo->prepare(getenv('GET_CSO_BY_ID_QUERY'));
+		$nCSO->execute(array("id" => $id));
+		$cso = $nCSO->fetchAll();
+		if (sizeof($cso) > 0) {
+			return $cso;
+		}
+		return null;
+	}
 		//add cso
-		// public function Addcso($cso){
-		// 	$params = array(
-		// 		'cso_name' => $cso['cso_name'],
-		// 		'cso_email' => $cso['cso_email'],
-		// 		'cso_location' => $cso['cso_location'],
-		// 		'cso_latitude' => $cso['cso_latitude'],
-		// 		'cso_longitude' => $cso['cso_longitude'],
-		// 		'cso_working_hours' => $cso['cso_working_hours'],
-		// 		'cso_phone_number' => $cso['cso_phone_number']
-		// 		);
+		public function Addcso($cso){
+			$params = array(
+				'cso_name' => $cso['cso_name'],
+				'cso_email' => $cso['cso_email'],
+				'cso_location' => $cso['cso_location'],
+				'cso_latitude' => $cso['cso_latitude'],
+				'cso_longitude' => $cso['cso_longitude'],
+				'cso_working_hours' => $cso['cso_working_hours'],
+				'cso_phone_number' => $cso['cso_phone_number'],
+				'user_id'=>0,
+				'cso_categories_cso_category_id'=>0
+				);
 	
-		// 	$stmt = $this->pdo->prepare(getenv('NEW_CASE_ACTIVITY_QUERY'));
+			$stmt = $this->pdo->prepare(getenv('NEW_CSO_QUERY'));
 	
-		// 	$res = $stmt->execute(filter_var_array($params));
+			$res = $stmt->execute(filter_var_array($params));
+
+			// should check if cso already exists
+			
+			if ($res) {
+				return true;
+			} else{
+				error_log("Failed to add cso", 0);
+				return false; //failed to log case activity
+			}	
+		}
+
+		//add cso
+		public function Updatecso($cso){
+			$params = array(
+				'cso_name' => $cso['cso_name'],
+				'cso_email' => $cso['cso_email'],
+				'cso_location' => $cso['cso_location'],
+				'cso_latitude' => $cso['cso_latitude'],
+				'cso_longitude' => $cso['cso_longitude'],
+				'cso_working_hours' => $cso['cso_working_hours'],
+				'cso_phone_number' => $cso['cso_phone_number'],
+				'cso_details_id' => $cso['cso_details_id'],
+				);
 	
-		// 	$actionStatus = 'In Progress';
+			$stmt = $this->pdo->prepare(getenv('UPDATE_CSO_QUERY'));
 	
-		// 	if ($res) { //should only update status of case if note has been successfully logged
-	
-		// 		//need to run second query to update case status
-		// 		if ((strpos($note['action'], 'closed')) !== false) {
-		// 			$actionStatus = 'Closed';
-		// 		}
-		// 		$q = getenv('UPDATE_CASE_STATUS_QUERY_1')." '".$actionStatus."' ".getenv('UPDATE_CASE_STATUS_QUERY_2')." '".$note['caseNumber']."'";
-	
-		// 		$q = $this->pdo->prepare($q);
-		// 		$status = $q->execute();
-		// 		return $status;
-		// 	} else{
-		// 		return false; //failed to log case activity
-		// 	}
-	
-		// }
+			$res = $stmt->execute(filter_var_array($params));
+
+			// should check if cso already exists
+			
+			if ($res) {
+				return true;
+			} else{
+				return false; //failed to log case activity
+			}	
+		}
 
 	//get district csos
 	public function NearestDistrictCSO($district){
@@ -281,14 +340,18 @@ final class SafePalDB
 	//check auth
 	public function CheckAuth($user, $hash){
 		$query = $this->pdo->prepare(getenv('CHECKAUTH_QUERY'));
-		$query->execute(array("hash" => $hash, "username" => $user));
-
+		$query->execute(array("username" => $user));
 		$result = $query->fetchAll();
 		$userDetails = array();
-
+		
 		if (sizeof($result) > 0) {
-			$userDetails['userid'] = $result[0]['userid'];
-			$userDetails['cso_id'] = $result[0]['cso_id'];
+			if (password_verify($hash, $result[0]['hash'])) {
+				$userDetails['userid'] = $result[0]['userid'];
+				$userDetails['cso_id'] = $result[0]['cso_id'];
+			}
+			else{
+				error_log(print_r("Password did not match username", true));
+			}
 		}
 		return $userDetails;
 	}
@@ -344,7 +407,6 @@ final class SafePalDB
 			);
 
 			$stmt = $this->pdo->prepare(getenv('LOG_ACCESS_QUERY'));
-
 			$res = $stmt->execute(filter_var_array($params));
 
 			return $res;

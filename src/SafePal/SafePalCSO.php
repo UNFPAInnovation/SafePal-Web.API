@@ -54,11 +54,21 @@ final class SafePalCSO
 			$csos = $this->db->GetCSOs();
 			return $csos;
 	}
+	//get all CSO
+	public function GetCSO($cso_id){
+		$csos = $this->db->GetCSO($cso_id);
+		return $csos;
+}
 
 	//add csos
-	public function AddReport($reportarray){
-		$typeID = $this->getTypeID($reportarray['type']);
-		$data = $this->db->SaveReport((array)$reportarray, $typeID);
+	public function AddCSO($reportarray){
+		$data = $this->db->AddCSO((array)$reportarray, $typeID);
+		$this->db = null; //close connection
+		return $data;
+	}
+	//update csos
+	public function updateCSO($csoarray){
+		$data = $this->db->updateCSO((array)$csoarray, $typeID);
 		$this->db = null; //close connection
 		return $data;
 	}
