@@ -1,9 +1,11 @@
 <?php
-header('Content-type:application/json');
+//header('Content-type:application/json');
 require_once "vendor/autoload.php";
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+// use Fastroute\Dispatcher;
+// use Tuupola\Middleware\CorsMiddleware;
 use Slim\Csrf as csrf;
 
 //SafePal
@@ -28,6 +30,15 @@ $dotenv->load();
 $slimConfig = require_once getenv('PATH_TO_CONFIG')."slim.php";
 
 $app = new \Slim\App($slimConfig);
+
+// $app->add(new \Tuupola\Middleware\Cors([
+//     "origin" => ["*"],
+//     "methods" => ["GET", "POST", "PUT", "PATCH", "DELETE"],
+//     "headers.allow" => [],
+//     "headers.expose" => [],
+//     "credentials" => false,
+//     "cache" => 0,
+// ]));
 
 /**
  * [$dicontainer get dependency container]
@@ -206,8 +217,28 @@ $app->group('/api/v1', function () use ($app) {
 
             //add report
             $result = $this->reports->AddReport($report);
-
-            return ($result['caseNumber']) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), getenv('MSG') => "Report added successfully!", "casenumber" => $result['caseNumber'], "csos" => $result['csos'])) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add report"));
+            if ($result['caseNumber']){ 
+            echo json_encode(array(
+                getenv('STATUS')  => getenv('SUCCESS_STATUS'),
+                getenv('MSG') => "Report added successfully!",
+                "casenumber" => $result['caseNumber'], 
+                "csos" => $result['csos']
+            ));
+            exit();
+            }
+            else{
+                echo json_encode(array(
+                    getenv('STATUS')  => getenv('FAILURE_STATUS'),
+                    getenv('MSG') => "Failed to add report"
+                ));
+                exit();
+            }
+            // return ($result['caseNumber']) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), 
+            //                                                         getenv('MSG') => "Report added successfully!", 
+            //                                                         "casenumber" => $result['caseNumber'], 
+            //                                                         "csos" => $result['csos']
+            //                                                     )
+            //                                                 ) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add report"));
 
         });
 

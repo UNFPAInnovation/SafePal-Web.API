@@ -290,7 +290,15 @@ final class SafePalDB
 			// should check if cso already exists
 			
 			if ($res) {
-				return true;
+				//return true;
+				error_log(print_r($this->pdo->lastInsertId(), true));
+
+				$auth = array(
+					'username' => $cso['username'],
+					'passsword' => $cso['password'],
+					'cso_id'=> $this->pdo->lastInsertId()
+					);
+				$this->AddAuth($auth);
 			} else{
 				error_log("Failed to add cso", 0);
 				return false; //failed to log case activity

@@ -27,7 +27,8 @@
         "sendgrid/sendgrid": "~5.1",
         "nesbot/carbon": "^1.22",
         "africastalking/africastalking": "^1.2",
-        "geocoder-php/google-maps-provider": "dev-master"
+        "geocoder-php/google-maps-provider": "dev-master",
+        "tuupola/cors-middleware": "^1.0"
     }, 
     "autoload": {
         "psr-4" : {
