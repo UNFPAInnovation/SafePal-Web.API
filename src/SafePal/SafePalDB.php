@@ -241,7 +241,7 @@ final class SafePalDB
 			'cso_id' => $auth['cso_id']
 			);
 			//system("echo ".$params['username']);
-			error_log(print_r($params, true));
+			error_log(print_r($auth, true));
 
 
 		$stmt = $this->pdo->prepare(getenv('NEW_AUTH_QUERY'));
@@ -291,11 +291,11 @@ final class SafePalDB
 			
 			if ($res) {
 				//return true;
-				error_log(print_r($this->pdo->lastInsertId(), true));
+				error_log(print_r($cso, true));
 
 				$auth = array(
 					'username' => $cso['username'],
-					'passsword' => $cso['password'],
+					'password' => $cso['password'],
 					'cso_id'=> $this->pdo->lastInsertId()
 					);
 				$this->AddAuth($auth);
@@ -353,7 +353,8 @@ final class SafePalDB
 		$userDetails = array();
 		
 		if (sizeof($result) > 0) {
-			if (password_verify($hash, $result[0]['hash'])) {
+			error_log(print_r($result, true));
+			if (password_verify($result[0]['hash'], $hash)) {
 				$userDetails['userid'] = $result[0]['userid'];
 				$userDetails['cso_id'] = $result[0]['cso_id'];
 			}

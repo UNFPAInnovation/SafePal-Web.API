@@ -1,5 +1,6 @@
 <?php
-//header('Content-type:application/json');
+// header("Access-Control-Allow-Origin: *");
+// header('Content-type:application/json');
 require_once "vendor/autoload.php";
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
