@@ -125,7 +125,7 @@ final class SafePalDB
 						$isCSOInRadius = $mapDistance->checkIfGeoPointInRadius($report['latitude'], $report['longitude'],$csos[$i]['cso_latitude'], $csos[$i]['cso_longitude']); //5km radius
 
 						if ($isCSOInRadius) {
-							$rehashed = password_hash($user_password, PASSWORD_DEFAULT);	//--notify via email TO-DO: Refactor -- also change to directly working with $result['csos'] with indices
+						//--notify via email TO-DO: Refactor -- also change to directly working with $result['csos'] with indices
 							array_push($nearbycsos, $csos[$i]);
 
 							if (!empty($csos[$i]['cso_email'])) { //only send email to csos with emails
@@ -354,7 +354,7 @@ final class SafePalDB
 		
 		if (sizeof($result) > 0) {
 			error_log(print_r($result, true));
-			if (password_verify($result[0]['hash'], $hash)) {
+			if (password_verify($hash, $result[0]['hash'])) {
 				$userDetails['userid'] = $result[0]['userid'];
 				$userDetails['cso_id'] = $result[0]['cso_id'];
 			}

@@ -1,5 +1,5 @@
 <?php
-// header("Access-Control-Allow-Origin: *");
+//header("Access-Control-Allow-Origin: *");
 // header('Content-type:application/json');
 require_once "vendor/autoload.php";
 
@@ -31,15 +31,11 @@ $dotenv->load();
 $slimConfig = require_once getenv('PATH_TO_CONFIG')."slim.php";
 
 $app = new \Slim\App($slimConfig);
+$app->options('/{routes:.+}', function ($request, $response, $args) {
+    return $response;
+});
 
-// $app->add(new \Tuupola\Middleware\Cors([
-//     "origin" => ["*"],
-//     "methods" => ["GET", "POST", "PUT", "PATCH", "DELETE"],
-//     "headers.allow" => [],
-//     "headers.expose" => [],
-//     "credentials" => false,
-//     "cache" => 0,
-// ]));
+
 
 /**
  * [$dicontainer get dependency container]
@@ -86,14 +82,8 @@ $dicontainer['csos'] = function ($rp){
  * @param  {[type]} $next [Next ]
  * @return {[type]}       [description]
  */
-$app->add(function($req, $res, $next){
-    $response = $next($req, $res);
-    if (!$req->isXhr()) {
-        return $response->withHeader('Access-Control-Allow-Origin', '*')
-        ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, userid')
-            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    }
-});
+
+
 
 
 /**
@@ -102,7 +92,21 @@ $app->add(function($req, $res, $next){
  * @param  {[Response]} Response [Response object]
  * @return {[Response]}          [Returned response to requestor]
  */
-$app->get('/', function (Request $req, Response $res){
+// $app->options('/*', function (Request $req, Response $res){
+//     return $response->withHeader('Access-Control-Allow-Origin', '*')
+//         ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, userid')
+//             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, ,PUT, OPTIONS, DELETE');
+// });
+$app->add(function ($req, $res, $next) {
+    $response = $next($req, $res);
+    return $response
+            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('headers.allow',['Accept', 'Content-Type'])
+            ->withHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Accept, Origin, Authorization, userid')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+});
+
+ $app->get('/', function (Request $req, Response $res){
     $res->getBody()->write("SafePal API v1.6");
     return $res;
 });
@@ -143,6 +147,8 @@ $app->group('/api/v1', function () use ($app) {
                 return $res->withJson(array(getenv('STATUS') => getenv('SUCCESS_STATUS'), "token" => $token));
             }
         });
+
+    
 
 
         /**
@@ -218,28 +224,28 @@ $app->group('/api/v1', function () use ($app) {
 
             //add report
             $result = $this->reports->AddReport($report);
-            if ($result['caseNumber']){ 
-            echo json_encode(array(
-                getenv('STATUS')  => getenv('SUCCESS_STATUS'),
-                getenv('MSG') => "Report added successfully!",
-                "casenumber" => $result['caseNumber'], 
-                "csos" => $result['csos']
-            ));
-            exit();
-            }
-            else{
-                echo json_encode(array(
-                    getenv('STATUS')  => getenv('FAILURE_STATUS'),
-                    getenv('MSG') => "Failed to add report"
-                ));
-                exit();
-            }
-            // return ($result['caseNumber']) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), 
-            //                                                         getenv('MSG') => "Report added successfully!", 
-            //                                                         "casenumber" => $result['caseNumber'], 
-            //                                                         "csos" => $result['csos']
-            //                                                     )
-            //                                                 ) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add report"));
+            // if ($result['caseNumber']){ 
+            // echo json_encode(array(
+            //     getenv('STATUS')  => getenv('SUCCESS_STATUS'),
+            //     getenv('MSG') => "Report added successfully!",
+            //     "casenumber" => $result['caseNumber'], 
+            //     "csos" => $result['csos']
+            // ));
+            // exit();
+            // }
+            // else{
+            //     echo json_encode(array(
+            //         getenv('STATUS')  => getenv('FAILURE_STATUS'),
+            //         getenv('MSG') => "Failed to add report"
+            //     ));
+            //     exit();
+            // }
+            return ($result['caseNumber']) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), 
+                                                                    getenv('MSG') => "Report added successfully!", 
+                                                                    "casenumber" => $result['caseNumber'], 
+                                                                    "csos" => $result['csos']
+                                                                )
+                                                            ) : $res->withJson(array(getenv('STATUS') => getenv('FAILURE_STATUS'), getenv('MSG') => "Failed to add report"));
 
         });
 
@@ -407,9 +413,15 @@ $app->group('/api/v1', function () use ($app) {
              return (sizeof($allnotes) > 0) ? $res->withJson(array(getenv('STATUS')  => getenv('SUCCESS_STATUS'), "notes" => $allnotes)): $res->withJson(array(getenv('STATUS')  => getenv('FAILURE_STATUS'), "notes" => array()));
 
         });
+        
+        $app->map(['OPTIONS', 'GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function($req, $res) {
+            $handler = $this->notFoundHandler; // handle using the default Slim page not found handler
+            return $handler($req, $res);
+        });
 
     });
 })->add(new pal\AuthMiddleware());
+
 
 /**
  * Run SLIM app
