@@ -86,7 +86,7 @@ final class SafePalDB
 				        'reporter_relationship' => $reporter_relationship,
 				        'district' => (!empty($location['district'])) ? $location['district'] : "Unknown",
 				        'subcounty' => (!empty($location['subcounty'])) ? $location['subcounty'] : "Unknown",
-				        'location' => (!empty($report['incident_location'])) ? $report['incident_location'] : "Unknown",
+				        'location' => (!empty($report['location'])) ? $report['location'] : "Unknown",
 				        'latitude' => $report['latitude'],
 				        'disability' => $report['disability'],
 				        'longitude' => $report['longitude'],
